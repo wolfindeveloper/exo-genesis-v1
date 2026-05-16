@@ -1,0 +1,11 @@
+- id: "zone_milky_way"
+  name_ru: "Млечный Путь: Окраины"
+  name_en: "Milky Way: Outskirts"
+  risk_percent: 15
+  duration_min: 15
+
+- id: "zone_orion"
+  name_ru: "Пояс Ориона: Туманность"
+  name_en: "Orion Belt: Nebula"
+  risk_percent: 25
+  duration_min: 30

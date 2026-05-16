@@ -1,0 +1,20 @@
+- id: "artifact_sensor_mk1"
+  name_ru: "Датчик Mk.I"
+  name_en: "Sensor Mk.I"
+  rarity: "common"
+  weight: 50
+  effect_json: '{"scan_range_bonus": 0.05}'
+
+- id: "artifact_dark_shard"
+  name_ru: "Осколок Тьмы"
+  name_en: "Dark Shard"
+  rarity: "rare"
+  weight: 20
+  effect_json: '{"stealth_bonus": 0.10}'
+
+- id: "artifact_quantum_core"
+  name_ru: "Квантовое Ядро"
+  name_en: "Quantum Core"
+  rarity: "legendary"
+  weight: 5
+  effect_json: '{"jump_range_bonus": 0.25}'

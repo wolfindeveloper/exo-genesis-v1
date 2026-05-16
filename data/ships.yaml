@@ -1,0 +1,6 @@
+- id: "ship_t1"
+  name_ru: "Искатель I"
+  name_en: "Explorer I"
+  tier: 1
+  hp: 100
+  base_armor: 0.05
