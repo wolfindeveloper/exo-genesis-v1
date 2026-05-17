@@ -26,9 +26,20 @@ export function Hangar() {
         setLoading(false)
       }
     }
+    
     fetchStatus()
-    const interval = setInterval(fetchStatus, 5000) // Обновляем каждые 5 сек
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchStatus, 5000)
+    
+    const handleStorageChange = () => {
+        fetchStatus() // Перезагрузить данные при изменении в localStorage
+    }
+    window.addEventListener("storage", handleStorageChange)
+    
+    return () => {
+        clearInterval(interval)
+        window.removeEventListener("storage", handleStorageChange)  // ← и сюда добавь очистку
+    }
+
   }, [])
 
   if (loading || !data) return <div className="min-h-screen bg-space-900 flex items-center justify-center text-neon-blue"> Loading Hangar...</div>

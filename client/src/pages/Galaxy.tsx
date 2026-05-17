@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react"
 import { withTelegramAuth } from "@/utils/telegram"
 
-
 interface Zone {
   id: string
   name: string
@@ -23,14 +22,23 @@ export function Galaxy() {
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null)
   const [duration, setDuration] = useState(60)
   const [launching, setLaunching] = useState(false)
-  const [activeExp, setActiveExp] = useState<{id: string; endTime: string; progress: number} | null>(null)
+  const [claiming, setClaiming] = useState(false)
+  const [activeExp, setActiveExp] = useState<{
+    id: string
+    endTime: string
+    progress: number
+    canClaim: boolean
+    loot?: any
+    reward?: any
+  } | null>(null)
+  const [showLoot, setShowLoot] = useState(false)
 
   // Проверка активной экспедиции при загрузке
   useEffect(() => {
     const checkActive = async () => {
       try {
-        // TODO: добавить GET /api/expeditions/active позже
-        // Пока заглушка — ничего не делаем
+        // TODO: реализовать GET /api/expeditions/active на бэкенде
+        // Пока заглушка — можно расширить позже
       } catch (e) {
         console.error("Failed to check active expedition", e)
       }
@@ -51,7 +59,7 @@ export function Galaxy() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          ship_id: 1, // TODO: получить ID корабля из Hangar status
+          ship_id: 1, // TODO: получить реальный ID корабля из контекста/хранилища
           zone_config_id: selectedZone.id,
           zone_risk: selectedZone.risk,
           duration_min: duration
@@ -63,19 +71,57 @@ export function Galaxy() {
         setActiveExp({
           id: data.expedition_id,
           endTime: data.end_time,
-          progress: 0
+          progress: 0,
+          canClaim: false
         })
+      } else {
+        const err = await res.json()
+        alert(`Launch failed: ${err.detail || "Unknown error"}`)
       }
     } catch (e) {
       console.error("Launch failed", e)
+      alert("Network error. Check console.")
     } finally {
       setLaunching(false)
     }
   }
 
+  const handleClaim = async () => {
+    if (!activeExp) return
+    setClaiming(true)
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+      const res = await fetch(`${API_URL}/api/expeditions/${activeExp.id}/claim`, {
+        method: "POST",
+        headers: {
+          ...withTelegramAuth(),
+          "Content-Type": "application/json"
+        }
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setActiveExp(prev => prev ? { ...prev, loot: data.loot, reward: data, canClaim: false } : null)
+        setShowLoot(true)
+        
+        // Авто-обновление баланса в Ангаре (через localStorage или события)
+        localStorage.setItem("hangar_refresh", Date.now().toString())
+      } else {
+        const err = await res.json()
+        alert(`Claim failed: ${err.detail || "Unknown error"}`)
+      }
+    } catch (e) {
+      console.error("Claim failed", e)
+      alert("Network error. Check console.")
+    } finally {
+      setClaiming(false)
+    }
+  }
+
   // Таймер обновления прогресса
   useEffect(() => {
-    if (!activeExp) return
+    if (!activeExp || activeExp.canClaim) return
     
     const interval = setInterval(async () => {
       try {
@@ -85,10 +131,10 @@ export function Galaxy() {
         })
         if (res.ok) {
           const data = await res.json()
-          if (data.completed) {
-            setActiveExp(null) // Экспедиция завершена — можно кликнуть Claim
+          if (data.completed || data.status === "completed" || data.status === "damaged" || data.status === "destroyed") {
+            setActiveExp(prev => prev ? { ...prev, progress: 1, canClaim: true } : null)
           } else {
-            setActiveExp(prev => prev ? {...prev, progress: data.progress} : null)
+            setActiveExp(prev => prev ? { ...prev, progress: data.progress || 0 } : null)
           }
         }
       } catch (e) {
@@ -99,6 +145,58 @@ export function Galaxy() {
     return () => clearInterval(interval)
   }, [activeExp])
 
+  // Экран показа лута
+  if (showLoot && activeExp?.reward) {
+    const { loot, rare, xgen_earned, ship_destroyed } = activeExp.reward
+    return (
+      <div className="min-h-screen bg-space-900 text-white flex flex-col items-center justify-center p-4">
+        <div className="bg-space-800 border border-neon-green rounded-2xl p-6 max-w-md w-full shadow-[0_0_30px_rgba(0,255,100,0.3)] animate-pulse">
+          <h2 className="text-2xl font-bold text-center mb-4 text-neon-green">🎁 MISSION COMPLETE!</h2>
+          
+          {ship_destroyed ? (
+            <div className="text-center py-4">
+              <p className="text-neon-red text-lg font-bold mb-2">💥 SHIP DESTROYED</p>
+              <p className="text-sm text-gray-400">Your vessel was lost in the void...</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mb-6">
+              <p className="text-sm text-gray-400">Loot acquired:</p>
+              {loot && Object.entries(loot).map(([item, amount]) => (
+                <div key={item} className="flex justify-between items-center bg-space-900/50 p-3 rounded-lg">
+                  <span className="capitalize">{item.replace("_", " ")}</span>
+                  <span className="font-mono text-neon-blue">+{String(amount)}</span>
+                </div>
+              ))}
+              {rare && rare.length > 0 && (
+                <div className="border-t border-space-700 pt-3 mt-3">
+                  <p className="text-xs text-neon-purple mb-2">✨ Rare drops:</p>
+                  {rare.map((item: string) => (
+                    <div key={item} className="flex justify-between items-center bg-neon-purple/10 p-2 rounded">
+                      <span className="capitalize">{item.replace("_", " ")}</span>
+                      <span className="text-neon-purple">★</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="bg-neon-blue/10 p-3 rounded-lg border border-neon-blue/30">
+                <p className="text-sm text-gray-400">XGEN earned</p>
+                <p className="text-xl font-bold text-neon-blue">+{xgen_earned?.toFixed(2) || "0.00"}</p>
+              </div>
+            </div>
+          )}
+          
+          <button 
+            onClick={() => { setShowLoot(false); setActiveExp(null); }}
+            className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-neon-green to-green-700"
+          >
+            ✅ RETURN TO HANGAR
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Экран активной экспедиции (таймер)
   if (activeExp) {
     return (
       <div className="min-h-screen bg-space-900 text-white flex flex-col items-center justify-center p-4">
@@ -119,16 +217,24 @@ export function Galaxy() {
           </div>
           
           <button 
-            disabled={activeExp.progress < 1}
-            className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-neon-purple to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleClaim}
+            disabled={!activeExp.canClaim || claiming}
+            className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-neon-green to-green-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-600 disabled:to-gray-700"
           >
-            {activeExp.progress >= 1 ? "🎁 CLAIM REWARDS" : "⏳ RETURNING..."}
+            {claiming ? "⏳ CLAIMING..." : activeExp.canClaim ? "🎁 CLAIM REWARDS" : "⏳ RETURNING..."}
           </button>
+          
+          {!activeExp.canClaim && (
+            <p className="text-xs text-center text-gray-500 mt-3">
+              Rewards will be available upon completion
+            </p>
+          )}
         </div>
       </div>
     )
   }
 
+  // Основной экран: выбор зоны
   return (
     <div className="min-h-screen bg-space-900 text-white pb-20">
       <div className="max-w-md mx-auto px-4 pt-6">
