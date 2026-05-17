@@ -34,7 +34,18 @@ async def get_hangar_status(
         player = Player(telegram_id=telegram_id, username=username, xgen_balance=1000, xp=0)
         db.add(player)
         await db.flush()
-        ship = Ship(player_id=player.id, name="STELLA", rank=1, materia=1250, speed=85, status="Active", health_max=1000, health_current=1000)
+        ship = Ship(
+                    player_id=player.id,
+                    name="STELLA",
+                    tier=1,              # ← rank → tier
+                    materia=1250,
+                    speed=85,
+                    status="Active",
+                    max_hp=1000,         # ← health_max → max_hp
+                    hp=1000,             # ← health_current → hp
+                    is_active=True,      # ← новое поле
+                    base_armor=0.15      # ← новое поле
+                )
         db.add(ship)
         await db.commit()
         await db.refresh(player)
@@ -76,12 +87,14 @@ async def get_hangar_status(
         },
         "ship": {
             "name": ship.name,
-            "rank": ship.rank,
+            "tier": ship.tier,              # ← rank → tier
             "materia": ship.materia,
             "speed": ship.speed,
             "status": ship.status,
-            "hp_current": ship.health_current,
-            "hp_max": ship.health_max,
+            "hp_current": ship.hp,          # ← health_current → hp
+            "hp_max": ship.max_hp,          # ← health_max → max_hp
+            "base_armor": ship.base_armor,  # ← новое поле
+            "is_active": ship.is_active,    # ← новое поле
             "boosts": ["+12% Scan Range", "+5% Speed"]
         },
         "action": {
