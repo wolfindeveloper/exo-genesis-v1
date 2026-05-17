@@ -20,6 +20,15 @@ export function Hangar() {
           headers: withTelegramAuth()
         })
         if (res.ok) setData(await res.json())
+        if (res.ok) {
+            const data = await res.json()
+            setData(data)
+            
+            // 🔥 ДОБАВЬ ЭТО:
+            if (data.ship?.id) {
+                localStorage.setItem("ship_id", data.ship.id)
+            }
+            }
       } catch (e) {
         console.error("Failed to load hangar", e)
       } finally {

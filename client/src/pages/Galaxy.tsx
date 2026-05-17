@@ -48,6 +48,11 @@ export function Galaxy() {
 
   const handleLaunch = async () => {
     if (!selectedZone) return
+    const shipId = localStorage.getItem("ship_id")
+    if (!shipId) {
+      alert("⚠️ Ship not found. Please open Hangar first.")
+      return
+    }
     setLaunching(true)
     
     try {
@@ -59,7 +64,7 @@ export function Galaxy() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          ship_id: 1, // TODO: получить реальный ID корабля из контекста/хранилища
+          ship_id: localStorage.getItem("ship_id") || "",
           zone_config_id: selectedZone.id,
           zone_risk: selectedZone.risk,
           duration_min: duration

@@ -86,6 +86,7 @@ async def get_hangar_status(
             "xp_to_next": 1000
         },
         "ship": {
+            "id": str(ship.id),
             "name": ship.name,
             "tier": ship.tier,              # ← rank → tier
             "materia": ship.materia,
