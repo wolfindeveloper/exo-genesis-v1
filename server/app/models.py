@@ -9,7 +9,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-# 🟢 Добавлено перечисление статусов
 class ExpeditionStatus(enum.Enum):
     pending = "pending"
     active = "active"
@@ -18,7 +17,6 @@ class ExpeditionStatus(enum.Enum):
 
 class Player(Base):
     __tablename__ = "players"
-    
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String(64))
@@ -29,10 +27,10 @@ class Player(Base):
     
     ships = relationship("Ship", back_populates="player", cascade="all, delete-orphan")
     expeditions = relationship("Expedition", back_populates="player")
+    artifacts = relationship("Artifact", back_populates="player")
 
 class Ship(Base):
     __tablename__ = "ships"
-    
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     player_id = Column(PG_UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
     
@@ -52,12 +50,10 @@ class Ship(Base):
 
 class Expedition(Base):
     __tablename__ = "expeditions"
-    
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     player_id = Column(PG_UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
     ship_id = Column(PG_UUID(as_uuid=True), ForeignKey("ships.id", ondelete="CASCADE"), nullable=False)
     
-    # 🟢 Теперь используем Enum
     status = Column(SAEnum(ExpeditionStatus), default=ExpeditionStatus.pending)
     tier = Column(Integer, default=1)
     duration_minutes = Column(Integer, default=60)
@@ -70,3 +66,24 @@ class Expedition(Base):
     
     player = relationship("Player", back_populates="expeditions")
     ship = relationship("Ship", back_populates="expeditions")
+
+# 🔙 Восстановлено для совместимости с crafting.py
+class Artifact(Base):
+    __tablename__ = "artifacts"
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id = Column(PG_UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(64))
+    rarity = Column(String(16), default="common")
+    effect = Column(JSON, default=dict)
+    cycles_remaining = Column(Integer, default=30)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    player = relationship("Player", back_populates="artifacts")
+
+class Recipe(Base):
+    __tablename__ = "recipes"
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    recipe_hash = Column(String(64), unique=True, nullable=False)
+    artifact_id = Column(PG_UUID(as_uuid=True), ForeignKey("artifacts.id", ondelete="CASCADE"), nullable=False)
+    discoverer_id = Column(PG_UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
