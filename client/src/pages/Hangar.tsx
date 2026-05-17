@@ -30,7 +30,7 @@ export function Hangar() {
             }
             }
       } catch (e) {
-        console.error("Failed to load hangar", e)
+        console.error("Failed to load hangar!!!", e)
       } finally {
         setLoading(false)
       }
