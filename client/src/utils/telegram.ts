@@ -1,5 +1,4 @@
 // client/src/utils/telegram.ts
-
 /**
  * Возвращает заголовки для авторизации через Telegram initData
  */

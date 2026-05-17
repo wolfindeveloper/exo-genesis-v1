@@ -1,45 +1,46 @@
 # server/app/models.py
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Enum
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.sql import func
-import enum
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, Integer, BigInteger, DateTime, Boolean, JSON, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
-
-class ExpeditionStatus(str, enum.Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    CLAIMED = "claimed"
-    DAMAGED = "damaged"
-    DESTROYED = "destroyed"
 
 class Player(Base):
     __tablename__ = "players"
     
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(String, unique=True, index=True, nullable=False)
-    username = Column(String)
-    xgen_balance = Column(Float, default=0.0)
-    last_craft_at = Column(DateTime(timezone=True), nullable=True)  # Защита от race conditions
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    username = Column(String(64))
+    xgen_balance = Column(Integer, default=100) # Начальный баланс
+    xp = Column(Integer, default=0)
+    pilot_rank = Column(String(16), default="Rookie")
+    created_at = Column(DateTime, default=datetime.utcnow)
     
-    ships = relationship("Ship", back_populates="player")
+    # Связи
+    ships = relationship("Ship", back_populates="player", cascade="all, delete-orphan")
     expeditions = relationship("Expedition", back_populates="player")
-    artifacts = relationship("Artifact", back_populates="player")
 
 class Ship(Base):
     __tablename__ = "ships"
     
-    id = Column(Integer, primary_key=True, index=True)
-    player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
-    config_id = Column(String, nullable=False)  # ссылается на ships.yaml:id
-    tier = Column(Integer, nullable=False)
-    hp = Column(Integer, nullable=False)
-    max_hp = Column(Integer, nullable=False)
-    base_armor = Column(Float, default=0.0)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id = Column(PG_UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
+    
+    # Данные из дизайна
+    name = Column(String(64), default="STELLA")
+    rank = Column(Integer, default=1) # 1-5
+    materia = Column(Integer, default=1250)
+    speed = Column(Integer, default=85)
+    status = Column(String(16), default="Active") # Active, InExpedition, Repaired
+    
+    # HP Bar
+    health_max = Column(Integer, default=1000)
+    health_current = Column(Integer, default=1000)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
     
     player = relationship("Player", back_populates="ships")
     expeditions = relationship("Expedition", back_populates="ship")
@@ -47,37 +48,20 @@ class Ship(Base):
 class Expedition(Base):
     __tablename__ = "expeditions"
     
-    id = Column(Integer, primary_key=True, index=True)
-    player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
-    ship_id = Column(Integer, ForeignKey("ships.id"), nullable=False)
-    zone_config_id = Column(String, nullable=False)  # ссылается на zones.yaml:id
-    zone_risk = Column(Float, nullable=False)  # snapshot риска на момент старта
-    duration_seconds = Column(Integer, nullable=False)
-    start_time = Column(DateTime(timezone=True), server_default=func.now())
-    end_time = Column(DateTime(timezone=True), nullable=False)
-    status = Column(Enum(ExpeditionStatus), default=ExpeditionStatus.PENDING)
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id = Column(PG_UUID(as_uuid=True), ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
+    ship_id = Column(PG_UUID(as_uuid=True), ForeignKey("ships.id", ondelete="CASCADE"), nullable=False)
     
-    # Результаты
-    loot_resources = Column(String)  # JSON: {"fuel_scrap": 10, "metal_alloy": 5}
-    loot_rare = Column(String)  # JSON: ["dark_matter_shard"]
+    status = Column(String(16), default="pending") # pending, active, completed, claimed
+    tier = Column(Integer, default=1) # Сложность
+    duration_minutes = Column(Integer, default=60) # Сколько длится
+    
+    started_at = Column(DateTime, default=datetime.utcnow)
+    ends_at = Column(DateTime, nullable=True) # Когда закончится
+    
+    # Лут и урон (пока заглушки)
+    loot = Column(JSON, default=dict) 
     damage_taken = Column(Integer, default=0)
-    is_destroyed = Column(Boolean, default=False)
     
     player = relationship("Player", back_populates="expeditions")
     ship = relationship("Ship", back_populates="expeditions")
-
-
-class Artifact(Base):
-    __tablename__ = "artifacts"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
-    config_id = Column(String, nullable=False)  # ссылается на artifacts.yaml:id
-    name_ru = Column(String, nullable=False)
-    name_en = Column(String, nullable=False)
-    rarity = Column(String, nullable=False)  # "common", "rare", "legendary"
-    effect_json = Column(String)  # JSON: {"damage_boost": 0.1}
-    crafted_at = Column(DateTime(timezone=True), server_default=func.now())
-    is_equipped = Column(Boolean, default=False)
-    
-    player = relationship("Player", back_populates="artifacts")

@@ -1,12 +1,20 @@
-// client/src/App.tsx
-import { CraftButton } from "./components/CraftButton"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BottomNav } from "./components/BottomNav"
+import { Hangar } from "./pages/Hangar"
 
 function App() {
   return (
-    <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
-      <h1 className="text-2xl font-bold mb-6">🚀 Exo Genesis</h1>
-      <CraftButton />
-    </div>
+    <BrowserRouter>
+      <div className="min-h-screen bg-space-900">
+        <Routes>
+          <Route path="/" element={<Navigate to="/hangar" replace />} />
+          <Route path="/hangar" element={<Hangar />} />
+          <Route path="/galaxy" element={<div className="p-10 text-center text-gray-500">Galaxy Page (Soon)</div>} />
+          <Route path="/lab" element={<div className="p-10 text-center text-gray-500">Lab Page (Soon)</div>} />
+        </Routes>
+        <BottomNav />
+      </div>
+    </BrowserRouter>
   )
 }
 
