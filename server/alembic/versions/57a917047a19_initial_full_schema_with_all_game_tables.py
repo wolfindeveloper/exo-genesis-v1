@@ -8,6 +8,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
+
 revision: str = '57a917047a19'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
@@ -41,8 +43,8 @@ def upgrade() -> None:
     op.create_index(op.f('ix_ships_player_id'), 'ships', ['player_id'], unique=False)
 
     # 3. Expedition Status Enum
-    expedition_status = sa.Enum('pending', 'active', 'completed', 'claimed', name='expeditionstatus')
-    expedition_status.create(op.get_bind())
+    expedition_status = PG_ENUM('pending', 'active', 'completed', 'claimed', name='expeditionstatus', create_type=False)
+    # expedition_status.create(op.get_bind())
 
     # 4. Expeditions
     op.create_table('expeditions',
@@ -92,8 +94,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_expeditions_player_id'), table_name='expeditions')
     op.drop_table('expeditions')
     
-    expedition_status = sa.Enum('pending', 'active', 'completed', 'claimed', name='expeditionstatus')
-    expedition_status.drop(op.get_bind())
+    # expedition_status = sa.Enum('pending', 'active', 'completed', 'claimed', name='expeditionstatus')
+    # expedition_status.drop(op.get_bind())
+    pass
     
     op.drop_index(op.f('ix_ships_player_id'), table_name='ships')
     op.drop_table('ships')
