@@ -43,7 +43,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_ships_player_id'), 'ships', ['player_id'], unique=False)
 
     # 3. Expedition Status Enum
-    expedition_status = PG_ENUM('pending', 'active', 'completed', 'claimed', name='expeditionstatus', create_type=False)
+    expedition_status = PG_ENUM('pending', 'active', 'completed', 'claimed', name='expeditionstatus', create_type=True)
     # expedition_status.create(op.get_bind())
 
     # 4. Expeditions
