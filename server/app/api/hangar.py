@@ -33,6 +33,7 @@ async def get_hangar_status(
     if not player:
         player = Player(telegram_id=telegram_id, username=username, xgen_balance=1000, xp=0)
         db.add(player)
+        await db.flush()
         ship = Ship(player_id=player.id, name="STELLA", rank=1, materia=1250, speed=85, status="Active", health_max=1000, health_current=1000)
         db.add(ship)
         await db.commit()
