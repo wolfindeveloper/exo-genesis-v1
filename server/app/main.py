@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
 # 👇 ИМПОРТ ОБЯЗАТЕЛЕН
-from app.api import config, expeditions, lab
+from app.api import config, expeditions, lab, hangar
 
 app = FastAPI(title="Exo Genesis API", version="0.1.0")
 
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(config.router)
 app.include_router(expeditions.router)
 app.include_router(lab.router) 
+app.include_router(hangar.router)
 
 @app.get("/api/health")
 def health():
