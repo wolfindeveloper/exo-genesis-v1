@@ -43,24 +43,24 @@ async def get_hangar_status(
         ship_res = await db.execute(select(Ship).where(Ship.player_id == player.id).limit(1))
         ship = ship_res.scalar_one_or_none()
 
-    # Проверка активной экспедиции
+    # Проверка активной экспедиции (под новый enum и поля)
     exp_res = await db.execute(select(Expedition).where(
         Expedition.player_id == player.id,
         Expedition.ship_id == ship.id,
-        Expedition.status == ExpeditionStatus.active
+        Expedition.status == ExpeditionStatus.IN_PROGRESS
     ))
     active_exp = exp_res.scalar_one_or_none()
     
     action_type = "ready"
-    action_text = " TAP TO MINE ⚡"
+    action_text = "⚡ TAP TO MINE ⚡"
     timer_seconds = 0
 
-    if active_exp and active_exp.ends_at:
+    if active_exp and active_exp.end_time:
         now = datetime.utcnow()
-        if now < active_exp.ends_at:
+        if now < active_exp.end_time:
             action_type = "expedition"
-            diff = int((active_exp.ends_at - now).total_seconds())
-            action_text = f" RETURNING IN {diff}s"
+            diff = int((active_exp.end_time - now).total_seconds())
+            action_text = f"🚀 RETURNING IN {diff}s"
             timer_seconds = diff
         else:
             action_type = "claim"
