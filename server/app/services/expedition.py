@@ -1,5 +1,5 @@
 # server/app/services/expedition.py
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models import Expedition, ExpeditionStatus, Ship, Player
@@ -26,7 +26,7 @@ async def start_expedition(
     zone_risk: float,
     duration_min: int
 ) -> Expedition:
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     end_time = now + timedelta(minutes=duration_min)
     
     expedition = Expedition(
@@ -56,7 +56,7 @@ async def claim_expedition(
     if expedition.status != ExpeditionStatus.IN_PROGRESS:
         raise ValueError(f"Invalid status: {expedition.status.value}")
     
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     
     # 🔹 ПЕРВЫМ ДЕЛОМ: если экспедиция ещё не завершена — просто верни прогресс
     if now < expedition.end_time:
