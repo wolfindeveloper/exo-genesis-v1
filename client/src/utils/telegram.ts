@@ -1,18 +1,38 @@
 // client/src/utils/telegram.ts
-import WebApp from '@twa-dev/sdk'
 
-export function getTelegramInitData(): string | null {
-  // Безопасная проверка: есть ли initData от Telegram
-  if (typeof window === 'undefined' || !WebApp.initData) {
-    return null
+/**
+ * Возвращает заголовки для авторизации через Telegram initData
+ */
+export function withTelegramAuth(): Record<string, string> {
+  // Проверяем, что код выполняется в Telegram WebApp
+  if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+    const tg = (window as any).Telegram.WebApp
+    const initData = tg.initData || ''
+    
+    if (initData) {
+      return { 'X-Telegram-Init-Data': initData }
+    }
   }
-  return WebApp.initData
+  
+  // Если не в Telegram или нет initData — возвращаем пустые заголовки
+  return {}
 }
 
-export function withTelegramAuth(headers: Record<string, string> = {}): Record<string, string> {
-  const initData = getTelegramInitData()
-  if (initData) {
-    headers['X-Telegram-Init-Data'] = initData
+/**
+ * Проверяет, что приложение запущено внутри Telegram
+ */
+export function isTelegramWebApp(): boolean {
+  return typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp
+}
+
+/**
+ * Инициализирует Telegram WebApp (расширяет на весь экран, включает кнопку закрытия)
+ */
+export function initTelegramWebApp(): void {
+  if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+    const tg = (window as any).Telegram.WebApp
+    tg.expand() // Раскрыть на весь экран
+    tg.enableClosingConfirmation() // Показать подтверждение закрытия
+    tg.ready() // Сообщить Telegram, что приложение готово
   }
-  return headers
 }
