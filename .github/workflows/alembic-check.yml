@@ -1,0 +1,31 @@
+name: Alembic Migration Check
+on: [push, pull_request]
+
+jobs:
+  check-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: exo_genesis
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - run: pip install -r server/requirements.txt
+      - name: Check for missing migrations
+        run: |
+          cd server
+          export DATABASE_URL="postgresql+asyncpg://dev:devpassword@localhost:5432/exo_genesis"
+          alembic check

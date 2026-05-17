@@ -5,7 +5,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: secure_password
       POSTGRES_DB: exo_genesis
     volumes:
       - pgdata:/var/lib/postgresql/data
